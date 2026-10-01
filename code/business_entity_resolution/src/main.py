@@ -32,7 +32,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=None)
     parser.add_argument("--team", default="entity_resolution")
+    parser.add_argument("--threshold", type=float, default=0.78)
     args = parser.parse_args()
+    if not 0 <= args.threshold <= 1:
+        parser.error("--threshold must be between 0 and 1")
     root = Path(args.root).expanduser().resolve() if args.root else Path(__file__).resolve().parents[4]
     train_dir, test_dir = root / "dataset/train", root / "dataset/test"
     required_dirs = (train_dir, test_dir)
@@ -62,16 +65,16 @@ def main():
             scored = [(entity_id, feature_row(left, right)) for entity_id, right in blocked]
             probs = classifier.predict_proba([value for _, value in scored])[:, 1] if scored else []
             validation_truth[row["entity_id"]] = truth.get(row["entity_id"], [])
-            validation_predictions[row["entity_id"]] = [entity_id for (entity_id, _), p in zip(scored, probs) if p >= 0.78]
+            validation_predictions[row["entity_id"]] = [entity_id for (entity_id, _), p in zip(scored, probs) if p >= args.threshold]
         validation_score = macro_f05(validation_truth, validation_predictions)
         save(classifier, output / "model.joblib")
         test_db, test_counts = build_index([test_dir / "test_source2.tsv", test_dir / "test_source3.tsv"], Path(temp) / "test.sqlite")
         test_rows = list(read_rows(test_dir / "test_source1.tsv"))
-        matching, candidate_rows, candidate_counts = run(test_rows, lambda row: candidates(test_db, row, test_counts), classifier, 0.78)
+        matching, candidate_rows, candidate_counts = run(test_rows, lambda row: candidates(test_db, row, test_counts), classifier, args.threshold)
         write_results(output / "matching_results.tsv", ["source1_entity_id", "matched_entity_ids"], matching)
         write_results(output / "candidate_pairs.tsv", ["source1_entity_id", "candidate_entity_ids"], candidate_rows)
         naive = len(test_rows) * (sum(1 for _ in read_rows(test_dir / "test_source2.tsv")) + sum(1 for _ in read_rows(test_dir / "test_source3.tsv")))
-        stats = {"validation_f05": validation_score, "naive_comparisons": naive, "candidate_comparisons": sum(candidate_counts), "reduction_ratio": 1 - sum(candidate_counts) / naive, "average_candidates": statistics.mean(candidate_counts), "median_candidates": statistics.median(candidate_counts), "p95_candidates": float(np.percentile(candidate_counts, 95)), "max_candidates": max(candidate_counts), "test_s1_entities": len(test_rows), "predicted_matches": sum(len(ids) for _, ids in matching), "predicted_singletons": sum(not ids for _, ids in matching), "threshold": 0.78, "model": "scikit-learn LogisticRegression (BSD-3-Clause), 13 numeric features"}
+        stats = {"validation_f05": validation_score, "naive_comparisons": naive, "candidate_comparisons": sum(candidate_counts), "reduction_ratio": 1 - sum(candidate_counts) / naive, "average_candidates": statistics.mean(candidate_counts), "median_candidates": statistics.median(candidate_counts), "p95_candidates": float(np.percentile(candidate_counts, 95)), "max_candidates": max(candidate_counts), "test_s1_entities": len(test_rows), "predicted_matches": sum(len(ids) for _, ids in matching), "predicted_singletons": sum(not ids for _, ids in matching), "threshold": args.threshold, "model": "scikit-learn LogisticRegression (BSD-3-Clause), 13 numeric features"}
         write_json(output / "metrics.json", stats)
         print(json.dumps(stats, indent=2))
 
