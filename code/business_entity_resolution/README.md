@@ -13,6 +13,9 @@ python code/business_entity_resolution/src/main.py --root .
 
 The expected input folders are `dataset/train` and `dataset/test`. No network access or external business data is used.
 
+The default decision threshold is `0.78`. Tune it for a local experiment with
+`--threshold`, for example `--threshold 0.82`; values must be between `0` and `1`.
+
 ## Blocking and features
 Source 2 and Source 3 records are indexed in SQLite. Candidate union uses exact compact name, exact compact address, and rare normalized name/address tokens, with a bounded prefix fallback. Very common blocks are capped to avoid Cartesian expansion. The final candidate list is filtered by inexpensive name/address evidence and is exactly the set scored by the classifier.
 
@@ -33,3 +36,9 @@ python utils/validate_submission.py --matching output/matching_results.tsv --can
 ```
 
 The expected result is `PASS`.
+
+Run the lightweight regression tests from this directory with:
+
+```text
+python -m unittest discover -s tests -v
+```
