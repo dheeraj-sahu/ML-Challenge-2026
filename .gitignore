@@ -13,6 +13,9 @@ env/
 .pytest_cache/
 .mypy_cache/
 *.log
+*.sqlite
+*.joblib
+.coverage
 
 # Local challenge data and generated result files
 dataset/
