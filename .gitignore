@@ -1,0 +1,19 @@
+# Local and platform metadata
+.DS_Store
+._*
+
+# Python-generated files and environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Local tooling and generated logs
+.pytest_cache/
+.mypy_cache/
+*.log
+
+# Local challenge data and generated result files
+dataset/
+output/
