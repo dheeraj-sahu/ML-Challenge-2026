@@ -33,8 +33,12 @@ def main():
     parser.add_argument("--root", default=None)
     parser.add_argument("--team", default="entity_resolution")
     args = parser.parse_args()
-    root = Path(args.root) if args.root else Path(__file__).resolve().parents[4]
+    root = Path(args.root).expanduser().resolve() if args.root else Path(__file__).resolve().parents[4]
     train_dir, test_dir = root / "dataset/train", root / "dataset/test"
+    required_dirs = (train_dir, test_dir)
+    missing_dirs = [str(path) for path in required_dirs if not path.is_dir()]
+    if missing_dirs:
+        parser.error("missing dataset directory: " + ", ".join(missing_dirs))
     output = root / "output"
     output.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory() as temp:
